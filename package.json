@@ -1,0 +1,22 @@
+{
+  "name": "pit-wall-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Data pipeline for Pit Wall: turns OpenF1 telemetry into small JSON files for the 3D site.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:session": "tsx src/build-session.ts",
+    "serve": "tsx src/serve.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

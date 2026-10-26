@@ -1,0 +1,11 @@
+Pit Wall data
+
+The JSON files on this site are derived from OpenF1 (https://openf1.org),
+which is licensed under Creative Commons BY-NC-SA 4.0
+(https://creativecommons.org/licenses/by-nc-sa/4.0/).
+
+These files are shared under the same licence: non-commercial use only,
+credit OpenF1, and share any derived data under the same terms.
+
+This is an unofficial fan project. It is not associated with Formula 1,
+the FIA, or any team. F1 and related marks are trademarks of their owners.
