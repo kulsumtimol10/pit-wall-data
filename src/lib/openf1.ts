@@ -15,6 +15,8 @@ export interface OpenF1Session {
   circuit_short_name: string;
   country_name: string;
   year: number;
+  /** Local time at the circuit relative to UTC, e.g. "02:00:00" or "-05:00:00" */
+  gmt_offset: string | null;
 }
 
 export interface OpenF1Meeting {
@@ -35,6 +37,10 @@ export interface OpenF1SessionResult {
   position: number | null;
   /** Qualifying: [Q1, Q2, Q3] in seconds (null where not set); other sessions: one number */
   duration: number | (number | null)[] | null;
+  number_of_laps: number | null;
+  dnf: boolean;
+  dns: boolean;
+  dsq: boolean;
 }
 
 export interface OpenF1Lap {
@@ -43,6 +49,33 @@ export interface OpenF1Lap {
   date_start: string | null;
   lap_duration: number | null;
   is_pit_out_lap: boolean;
+  duration_sector_1: number | null;
+  duration_sector_2: number | null;
+  duration_sector_3: number | null;
+  /** Speed trap, km/h */
+  st_speed: number | null;
+}
+
+export interface OpenF1Stint {
+  driver_number: number;
+  stint_number: number;
+  lap_start: number | null;
+  lap_end: number | null;
+  compound: string | null;
+  /** Laps already done on the set when the stint began */
+  tyre_age_at_start: number | null;
+}
+
+export interface OpenF1Weather {
+  date: string;
+  air_temperature: number;
+  track_temperature: number;
+  humidity: number;
+  pressure: number;
+  /** 0 or 1 */
+  rainfall: number;
+  wind_direction: number;
+  wind_speed: number;
 }
 
 export interface OpenF1Location {

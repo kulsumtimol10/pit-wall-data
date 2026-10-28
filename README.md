@@ -15,7 +15,7 @@ npm test            # geometry and lap-merging tests
 npm run typecheck
 ```
 
-`build:session` makes about `5 + 2 × top` API calls, spaced 2.1 s apart to
+`build:session` makes about `7 + 2 × top` API calls, spaced 2.1 s apart to
 stay inside OpenF1's free limit of 30 requests a minute.
 
 ## Output
@@ -29,9 +29,13 @@ out/
 ```
 
 Each lap holds parallel arrays sampled about 3.7 times a second: time, distance,
-x/y/z position in metres, speed, throttle, brake, gear and RPM. The format is
-defined in [src/types.ts](src/types.ts), the master copy; pit-wall-web keeps a
-copy in `src/lib/data-types.ts`. Breaking changes go under a new `/v2/` path.
+x/y/z position in metres, speed, throttle, brake, gear and RPM, plus the lap's
+official sector times, the driver's best sectors, speed trap, tyre compound and
+age, and which qualifying segment it was set in. Each session file also carries
+the full classification, the session's best sectors and its weather (about one
+reading a minute). The format is defined in [src/types.ts](src/types.ts), the
+master copy; pit-wall-web keeps a copy in `src/lib/data-types.ts`. Breaking
+changes go under a new `/v2/` path; new optional fields are not breaking.
 
 ## Publishing
 

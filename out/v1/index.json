@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-26T04:15:41.232Z",
+  "generatedAt": "2026-10-28T19:03:33.660Z",
   "sessions": [
     {
       "key": 9935,
@@ -10,6 +10,7 @@
       "circuit": "Spa-Francorchamps",
       "country": "Belgium",
       "date": "2025-07-26T14:00:00.000Z",
+      "utcOffset": "+02:00",
       "file": "laps/9935.json",
       "drivers": [
         "NOR",

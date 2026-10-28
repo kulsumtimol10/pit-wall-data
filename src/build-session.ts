@@ -4,6 +4,9 @@
 //   npm run build:session -- --year 2025 --country Belgium --session Qualifying --top 2
 //
 // Writes out/v1/laps/<session_key>.json and updates out/v1/index.json.
+// Besides the top drivers' telemetry, the file carries the full
+// classification, every lap's sector and tyre details for those drivers,
+// and the session's weather.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -18,8 +21,27 @@ import {
   type OpenF1Meeting,
   type OpenF1Session,
   type OpenF1SessionResult,
+  type OpenF1Stint,
+  type OpenF1Weather,
 } from './lib/openf1';
-import { DATA_VERSION, type DataIndex, type LapData, type SessionFile, type SessionInfo } from './types';
+import {
+  bestSectors,
+  byPosition,
+  classificationRow,
+  lapSectors,
+  segmentOf,
+  toUtcOffset,
+  toWeather,
+  tyreForLap,
+} from './lib/session';
+import {
+  DATA_VERSION,
+  type DataIndex,
+  type DriverInfo,
+  type LapData,
+  type SessionFile,
+  type SessionInfo,
+} from './types';
 
 /** Extra seconds of readings fetched either side of a lap, so its edges interpolate cleanly. */
 const EDGE_MARGIN_MS = 2000;
@@ -72,11 +94,22 @@ function pickLap(laps: OpenF1Lap[], best: number | null): OpenF1Lap {
   return matching ?? timed.reduce((a, b) => (b.lap_duration! < a.lap_duration! ? b : a));
 }
 
+function driverInfo(driver: OpenF1Driver): DriverInfo {
+  return {
+    number: driver.driver_number,
+    code: driver.name_acronym,
+    name: driver.full_name,
+    team: driver.team_name,
+    teamColour: driver.team_colour ?? '888888',
+  };
+}
+
 async function buildLap(
   sessionKey: number,
   result: OpenF1SessionResult,
   driver: OpenF1Driver,
   laps: OpenF1Lap[],
+  stints: OpenF1Stint[],
 ): Promise<LapData> {
   const best = officialBest(result);
   const lap = pickLap(laps, best);
@@ -123,17 +156,17 @@ async function buildLap(
   }
 
   return {
-    driver: {
-      number: driver.driver_number,
-      code: driver.name_acronym,
-      name: driver.full_name,
-      team: driver.team_name,
-      teamColour: driver.team_colour ?? '888888',
-    },
+    driver: driverInfo(driver),
     position: result.position!,
     lapNumber: lap.lap_number,
     lapTime,
     samples,
+    startedAt: new Date(startMs).toISOString(),
+    segment: segmentOf(result, lapTime),
+    sectors: lapSectors(lap),
+    personalBestSectors: bestSectors(laps),
+    speedTrap: lap.st_speed,
+    tyre: tyreForLap(stints, lap.lap_number),
   };
 }
 
@@ -152,22 +185,36 @@ async function main() {
   const [meeting] = await get<OpenF1Meeting>('meetings', [`meeting_key=${s.meeting_key}`]);
   console.log(`${meeting.meeting_name} ${s.year} - ${s.session_name} (session ${s.session_key})`);
 
-  const results = (await get<OpenF1SessionResult>('session_result', [`session_key=${s.session_key}`]))
-    .filter((r) => r.position !== null)
-    .sort((a, b) => a.position! - b.position!)
-    .slice(0, opts.top);
+  const allResults = (await get<OpenF1SessionResult>('session_result', [`session_key=${s.session_key}`])).sort(
+    byPosition,
+  );
+  const results = allResults.filter((r) => r.position !== null).slice(0, opts.top);
   const drivers = new Map(
     (await get<OpenF1Driver>('drivers', [`session_key=${s.session_key}`])).map((d) => [d.driver_number, d]),
   );
   const allLaps = await get<OpenF1Lap>('laps', [`session_key=${s.session_key}`]);
+  const allStints = await get<OpenF1Stint>('stints', [`session_key=${s.session_key}`]);
+  const weather = (await get<OpenF1Weather>('weather', [`session_key=${s.session_key}`]))
+    .map(toWeather)
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   const laps: LapData[] = [];
   for (const result of results) {
     const driver = drivers.get(result.driver_number);
     if (!driver) throw new Error(`No driver info for #${result.driver_number}`);
     const driverLaps = allLaps.filter((l) => l.driver_number === result.driver_number);
-    laps.push(await buildLap(s.session_key, result, driver, driverLaps));
+    const driverStints = allStints.filter((st) => st.driver_number === result.driver_number);
+    laps.push(await buildLap(s.session_key, result, driver, driverLaps, driverStints));
   }
+
+  const classification = allResults.flatMap((r) => {
+    const driver = drivers.get(r.driver_number);
+    return driver ? [classificationRow(r, driverInfo(driver))] : [];
+  });
+  console.log(
+    `  classification: ${classification.length} drivers, weather: ${weather.length} readings, ` +
+      `tyres: ${laps.map((l) => `${l.driver.code} ${l.tyre?.compound ?? '?'} age ${l.tyre?.age ?? '?'}`).join(', ')}`,
+  );
 
   const session: SessionInfo = {
     key: s.session_key,
@@ -177,6 +224,7 @@ async function main() {
     circuit: s.circuit_short_name,
     country: s.country_name,
     date: new Date(Date.parse(s.date_start)).toISOString(),
+    utcOffset: toUtcOffset(s.gmt_offset),
   };
   const generatedAt = new Date().toISOString();
   const file: SessionFile = {
@@ -185,6 +233,9 @@ async function main() {
     source: 'OpenF1 (openf1.org), CC BY-NC-SA 4.0',
     session,
     laps,
+    classification,
+    sessionBestSectors: bestSectors(allLaps),
+    weather,
   };
 
   const versionDir = join(opts.outDir, `v${DATA_VERSION}`);
