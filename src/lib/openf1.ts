@@ -1,16 +1,23 @@
 // Minimal OpenF1 client. Free tier: 3 requests/s and 30 requests/min,
-// so requests are spaced at least MIN_INTERVAL_MS apart.
+// so requests are spaced at least MIN_INTERVAL_MS apart. While a live F1
+// session runs, OpenF1 closes the free tier (past sessions included), so
+// requests wait for it to reopen.
 // Docs: https://openf1.org/docs
 
 const BASE_URL = 'https://api.openf1.org/v1';
 const MIN_INTERVAL_MS = 2100;
 const MAX_ATTEMPTS = 4;
+/** While OpenF1 is closed for a live session, check again this often... */
+const LIVE_RETRY_MS = 5 * 60_000;
+/** ...and give up after waiting this long. */
+const LIVE_MAX_WAIT_MS = 4 * 60 * 60_000;
 
 export interface OpenF1Session {
   session_key: number;
   session_name: string;
   session_type: string;
   date_start: string;
+  date_end: string;
   meeting_key: number;
   circuit_short_name: string;
   country_name: string;
@@ -22,6 +29,8 @@ export interface OpenF1Session {
 export interface OpenF1Meeting {
   meeting_key: number;
   meeting_name: string;
+  date_start: string;
+  is_cancelled?: boolean;
 }
 
 export interface OpenF1Driver {
@@ -34,7 +43,8 @@ export interface OpenF1Driver {
 
 export interface OpenF1SessionResult {
   driver_number: number;
-  position: number | null;
+  /** null, or text such as "RT", for drivers who aren't classified */
+  position: number | string | null;
   /** Qualifying: [Q1, Q2, Q3] in seconds (null where not set); other sessions: one number */
   duration: number | (number | null)[] | null;
   number_of_laps: number | null;
@@ -109,7 +119,8 @@ export function toQueryDate(ms: number): string {
  */
 export async function get<T>(endpoint: string, filters: string[]): Promise<T[]> {
   const url = `${BASE_URL}/${endpoint}?${filters.map(encodeFilter).join('&')}`;
-  for (let attempt = 1; ; attempt++) {
+  let closedSince: number | null = null;
+  for (let attempt = 1; ; ) {
     const wait = lastRequestAt + MIN_INTERVAL_MS - Date.now();
     if (wait > 0) await sleep(wait);
     lastRequestAt = Date.now();
@@ -118,11 +129,21 @@ export async function get<T>(endpoint: string, filters: string[]): Promise<T[]> 
     if (res.ok) return (await res.json()) as T[];
     // OpenF1 answers 404 when a filter matches nothing.
     if (res.status === 404) return [];
+    const body = await res.text();
+    if (res.status === 401 && /live f1 session/i.test(body)) {
+      closedSince ??= Date.now();
+      if (Date.now() - closedSince > LIVE_MAX_WAIT_MS) {
+        throw new Error(`OpenF1 stayed closed for a live session for ${LIVE_MAX_WAIT_MS / 3_600_000} hours`);
+      }
+      console.log(`  OpenF1 is closed to free users during a live session; trying again in ${LIVE_RETRY_MS / 60_000} minutes`);
+      await sleep(LIVE_RETRY_MS);
+      continue;
+    }
     const retryable = res.status === 429 || res.status >= 500;
     if (!retryable || attempt >= MAX_ATTEMPTS) {
-      throw new Error(`OpenF1 ${res.status} for ${url}: ${(await res.text()).slice(0, 200)}`);
+      throw new Error(`OpenF1 ${res.status} for ${url}: ${body.slice(0, 200)}`);
     }
-    await sleep(2000 * attempt);
+    await sleep(2000 * attempt++);
   }
 }
 

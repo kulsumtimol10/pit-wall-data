@@ -1,0 +1,56 @@
+# Builds new qualifying sessions from OpenF1 every week, commits them to main
+# and publishes out/ to GitHub Pages. Run it from the Actions tab to catch up
+# straight away.
+name: Weekly data update
+
+on:
+  schedule:
+    # Sundays 02:30 UTC: after every Saturday qualifying, before the race.
+    - cron: '30 2 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: data-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    # OpenF1 closes to free users during live sessions; the update waits up to 4 hours.
+    timeout-minutes: 300
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run update
+      # Commits whatever was built, even when some sessions failed.
+      - id: commit
+        if: ${{ !cancelled() }}
+        run: |
+          git add out
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "Data: new qualifying sessions"
+          git pull --rebase
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+  # Pushes made by a workflow don't start other workflows, so publish from here.
+  deploy:
+    needs: update
+    if: ${{ !cancelled() && needs.update.outputs.changed == 'true' }}
+    uses: ./.github/workflows/deploy-pages.yml

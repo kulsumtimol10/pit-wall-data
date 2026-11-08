@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build:session": "tsx src/build-session.ts",
+    "update": "tsx src/update.ts",
     "serve": "tsx src/serve.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

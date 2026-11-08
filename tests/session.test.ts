@@ -80,6 +80,11 @@ describe('classificationRow / byPosition', () => {
     const rows = [{ position: null }, { position: 2 }, { position: 1 }];
     expect(rows.sort(byPosition).map((r) => r.position)).toEqual([1, 2, null]);
   });
+  it('treats a text position such as "RT" as unclassified', () => {
+    expect(classificationRow(result({ position: 'RT' }), driver).position).toBeNull();
+    const rows = [{ position: 'RT' }, { position: 2 }, { position: 1 }];
+    expect(rows.sort(byPosition).map((r) => r.position)).toEqual([1, 2, 'RT']);
+  });
 });
 
 describe('toWeather / toUtcOffset', () => {

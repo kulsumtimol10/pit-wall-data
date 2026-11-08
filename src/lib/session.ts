@@ -40,10 +40,14 @@ export function tyreForLap(stints: OpenF1Stint[], lapNumber: number): Tyre | nul
   return { compound: stint.compound, age: startAge + (lapNumber - stint.lap_start), newSet: startAge === 0 };
 }
 
+/** A result's classified position, or null when the driver isn't classified (OpenF1 may send null or text such as "RT"). */
+export const positionOf = (result: OpenF1SessionResult): number | null =>
+  typeof result.position === 'number' ? result.position : null;
+
 export function classificationRow(result: OpenF1SessionResult, driver: DriverInfo): ClassificationRow {
   const times = Array.isArray(result.duration) ? result.duration : [result.duration];
   return {
-    position: result.position,
+    position: positionOf(result),
     driver,
     times: times.map((t) => (typeof t === 'number' ? t : null)),
     laps: result.number_of_laps ?? 0,
@@ -52,8 +56,9 @@ export function classificationRow(result: OpenF1SessionResult, driver: DriverInf
 }
 
 /** Classified drivers first, in position order; unclassified ones after. */
-export function byPosition<T extends { position: number | null }>(a: T, b: T): number {
-  return (a.position ?? Infinity) - (b.position ?? Infinity);
+export function byPosition<T extends { position: number | string | null }>(a: T, b: T): number {
+  const rank = (p: T['position']) => (typeof p === 'number' ? p : Infinity);
+  return rank(a.position) - rank(b.position);
 }
 
 export function toWeather(r: OpenF1Weather): WeatherReading {
