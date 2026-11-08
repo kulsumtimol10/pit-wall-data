@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generatedAt": "2026-11-02T19:32:31.824Z",
+  "generatedAt": "2026-11-08T19:34:42.850Z",
   "events": [
     {
       "key": 1279,
@@ -896,6 +896,54 @@
             "STR",
             "PER",
             "BOT"
+          ]
+        }
+      ]
+    },
+    {
+      "key": 1299,
+      "year": 2026,
+      "round": 20,
+      "meeting": "São Paulo Grand Prix",
+      "circuit": "Interlagos",
+      "country": "Brazil",
+      "date": "2026-11-07T18:00:00.000Z",
+      "outline": "M17.7 26.2L19.2 32.1L20.4 35.9L22 38L23.4 37.6L26 36.6L28.1 37.3L31.9 36.7L34.2 34.2L35.6 29.8L36.5 25.9L37.8 20.6L39.1 16L39.9 12.5L39.2 10.2L37 9.4L33 10L29.5 13.9L26.2 18.5L23.8 21.4L20.7 21.6L18.4 19.1L17.9 16.2L18.6 14.5L19.9 14.6L21.5 15.3L22.8 14.7L22.7 12.7L21.3 11.1L19.8 8.9L19.4 6.5L20.5 5.9L21.5 6.7L22.6 8L24.5 9.4L27.2 9.2L29.8 6.7L31.7 3.4L31.7 1.6L30.3 0.6L28.1 0L24.9 0.3L21.8 1.6L18.7 4.5L17.2 8L16.2 12.9L16.1 18L16.7 22.1Z",
+      "sessions": [
+        {
+          "key": 11408,
+          "meetingKey": 1299,
+          "year": 2026,
+          "meeting": "São Paulo Grand Prix",
+          "name": "Qualifying",
+          "circuit": "Interlagos",
+          "country": "Brazil",
+          "date": "2026-11-07T18:00:00.000Z",
+          "utcOffset": "-03:00",
+          "file": "sessions/11408.json",
+          "drivers": [
+            "NOR",
+            "RUS",
+            "ANT",
+            "LEC",
+            "LAW",
+            "HUL",
+            "HAD",
+            "BEA",
+            "ALO",
+            "ALB",
+            "HAM",
+            "PIA",
+            "CAM",
+            "LIN",
+            "SAI",
+            "VER",
+            "COL",
+            "GAS",
+            "STR",
+            "BOT",
+            "PER",
+            "BOR"
           ]
         }
       ]
